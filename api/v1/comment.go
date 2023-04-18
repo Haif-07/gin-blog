@@ -3,8 +3,10 @@ package v1
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
-	"net/http"
+	"gin-blog/models/response"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,11 +16,13 @@ type Comment struct{}
 // 后台管理评论状态统计
 func (*Comment) CountCommentNotStatus(c *gin.Context) {
 	s := c.Query("status")
-	i := dao.CountCommentStatus(s)
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": i,
-	})
+	count, err := dao.CountCommentStatus(s)
+	if err != nil {
+		zap.L().Error("查询未审核评论出错了", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
+
+	response.OkWithDetailed(count, "查询成功", c)
 
 }
 
@@ -28,56 +32,51 @@ func (*Comment) GetCommentsByPage(c *gin.Context) {
 	pageSize := c.Query("pageSize")
 	status := c.Query("status")
 	if status == "" {
-		status = "10"
+		status = "1"
 	}
 	pn, err := strconv.Atoi(pageNum)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 	ps, err := strconv.Atoi(pageSize)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 	st, err := strconv.Atoi(status)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 
-	list, i := dao.GetCpmmentsListByPage(pn, ps, st)
-	pageinfo.Total = i
+	list, count, err := dao.GetCpmmentsListByPage(pn, ps, st)
+	if err != nil {
+		zap.L().Error("查询评论出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
+	}
+	pageinfo.Total = count
 	pageinfo.PageNum = pn
 	pageinfo.PageSize = ps
 	pageinfo.Data = list
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": pageinfo,
-	})
+	response.OkWithDetailed(list, "查询成功", c)
 
 }
 
 // 后台修改评论的审核状态
 func (*Comment) ChangeStatus(c *gin.Context) {
-
 	i := c.Param("id")
 	s := c.Param("status")
 	id, err := strconv.Atoi(i)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	stauts, err2 := strconv.Atoi(s)
-	if err2 != nil {
-		return
+	stauts, err := strconv.Atoi(s)
+	if err != nil {
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	row := dao.ChangeStatus(id, stauts)
-	if row > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200000,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500000,
-			"message": "fail",
-		})
+	err = dao.ChangeStatus(id, stauts)
+	if err != nil {
+		zap.L().Error("审核评论出错了", zap.Error(err))
+		response.FailWithMessage("审核出错了", c)
 	}
+	response.OkWithMessage("审核成功", c)
+
 }

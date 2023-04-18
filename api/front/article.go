@@ -3,8 +3,10 @@ package front
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
-	"net/http"
+	"gin-blog/models/response"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,28 +21,29 @@ func (*Article) ArticlePageNum(c *gin.Context) {
 	categoryIds := c.Query("categoryIds")
 	p, err := strconv.Atoi(pageNum)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	list, total := dao.GetFrontArticleListByPage(p, tagIds, categoryIds)
+	list, total, err := dao.GetFrontArticleListByPage(p, tagIds, categoryIds)
+	if err != nil {
+		zap.L().Error("查询文章出错", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
 	pageinfo.Total = total
 	pageinfo.PageNum = p
 	pageinfo.PageSize = 10
 	pageinfo.Data = list
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": pageinfo,
-	})
-
+	response.OkWithDetailed(pageinfo, "查询成功", c)
 }
 
 // 归档请求
 func (*Article) GetArticlesAll(c *gin.Context) {
-	list := dao.GetArticlesAll()
-	c.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"msg":  "success",
-		"data": list,
-	})
+	all, err := dao.GetArticlesAll()
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
+	response.OkWithDetailed(all, "查询成功", c)
+
 }
 
 // 根据id查文章细节请求
@@ -49,46 +52,55 @@ func (*Article) GetArticleDetailsById(c *gin.Context) {
 
 	i, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	articledetails := dao.GetArticleDetails(i)
-	articledetails.Previous = dao.GetArticlePrevious(i)
-	articledetails.Next = dao.GetArticleNext(i)
-	c.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"msg":  "success",
-		"data": articledetails,
-	})
+	articledetails, err := dao.GetArticleDetails(i)
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
+	previous, err := dao.GetArticlePrevious(i)
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+	}
+	next, err := dao.GetArticleNext(i)
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+	}
+	articledetails.Previous = previous
+	articledetails.Next = next
+	response.OkWithDetailed(articledetails, "查询成功", c)
+
 }
 
 func (*Article) GetArticleComments(c *gin.Context) {
 	var pageinfo models.PageInfo
 	i, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 	pageNum := c.Query("pageNum")
 	p, err := strconv.Atoi(pageNum)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	totle, commentslist := dao.GetArticleCommentsById(i, p)
+	totle, commentslist, err := dao.GetArticleCommentsById(i, p)
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
 	pageinfo.Total = totle
 	pageinfo.PageNum = p
 	pageinfo.PageSize = 10
 	pageinfo.Data = commentslist
-	c.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"msg":  "success",
-		"data": pageinfo,
-	})
+	response.OkWithDetailed(pageinfo, "查询成功", c)
+
 }
 
 func (*Article) SearchArticle(c *gin.Context) {
 	var pageNum, pageSize int
 	var pageinfo models.PageInfo
 	p := c.Query("pageNum")
-
 	if p == "" {
 		pageNum = 1
 		pageSize = 5
@@ -96,24 +108,21 @@ func (*Article) SearchArticle(c *gin.Context) {
 		pageSize = 10
 		pn, err := strconv.Atoi(p)
 		if err != nil {
-			return
+			zap.L().Error("请求参数转换出错", zap.Error(err))
 		}
 		pageNum = pn
-
 	}
-
 	queryString := c.Query("queryString")
 
-	list, i := dao.Search(pageNum, pageSize, queryString)
-
+	list, i, err := dao.Search(pageNum, pageSize, queryString)
+	if err != nil {
+		zap.L().Error("查询出错", zap.Error(err))
+		response.FailWithMessage("查询出错", c)
+	}
 	pageinfo.Total = i
 	pageinfo.PageNum = pageNum
 	pageinfo.PageSize = pageSize
 	pageinfo.Data = list
-	c.JSON(http.StatusOK, gin.H{
-		"code": 200,
-		"msg":  "success",
-		"data": pageinfo,
-	})
+	response.OkWithDetailed(pageinfo, "查询成功", c)
 
 }

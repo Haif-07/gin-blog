@@ -3,8 +3,10 @@ package front
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
-	"net/http"
+	"gin-blog/models/response"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,45 +14,30 @@ import (
 type Comment struct{}
 
 func (*Comment) Save(c *gin.Context) {
-
 	var commentreq models.CommentReq
 	err := c.ShouldBindJSON(&commentreq)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
-	i := dao.SaveComment(commentreq)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.SaveComment(commentreq)
+	if err != nil {
+		zap.L().Error("保存评论出错了", zap.Error(err))
+		response.FailWithMessage("保存评论出错了", c)
 	}
+	response.OkWithMessage("保存评论成功", c)
 
 }
 
 func (*Comment) DelectComment(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
-	i := dao.DelectCommentById(id)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.DelectCommentById(id)
+	if err != nil {
+		zap.L().Error("删除评论出错", zap.Error(err))
+		response.FailWithMessage("删除评论出错", c)
 	}
+	response.OkWithMessage("删除成功", c)
 
 }

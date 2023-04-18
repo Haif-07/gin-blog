@@ -1,7 +1,11 @@
 package front
 
 import (
-	"net/http"
+	"gin-blog/database"
+	"gin-blog/models"
+	"gin-blog/models/response"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,35 +17,19 @@ func (*User) GetUserInfo(c *gin.Context) {
 }
 
 func (*User) UserInfo(c *gin.Context) {
-	userinfo, _ := c.Get("user")
-	c.JSON(http.StatusOK, gin.H{
-		"data": userinfo,
-	})
+	var userinfo models.User
+	userSocialUserId, flag := c.Get("user")
+	if !flag {
+		zap.L().Error("权限不足，没有存储到信息")
+		response.FailWithMessage("查询出错了", c)
+	}
+	err := database.DB.Where("social_user_id = ?", userSocialUserId).First(&userinfo).Error
+	if err != nil {
+		zap.L().Error("查询出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
+	}
+	response.OkWithDetailed(userinfo, "查询成功", c)
 }
 func (*User) FrontLogin(c *gin.Context) {
-	// var u models.User
-	// c.ShouldBindJSON(&u)
-	// fmt.Println(u)
-	// code := dao.FrontLogin(&u)
-	// if code == errmsg.SUCCSE {
-
-	// 	token, err := utils.GetToken(u)
-	// 	if err != nil {
-	// 		return
-	// 	}
-
-	// 	c.JSON(200, gin.H{
-	// 		"data": gin.H{
-	// 			"Oauth-Token": token,
-	// 		},
-	// 		"status":  code,
-	// 		"message": errmsg.GetErrmsg(code),
-	// 	})
-	// } else {
-	// 	c.JSON(500, gin.H{
-	// 		"status":  code,
-	// 		"message": errmsg.GetErrmsg(code),
-	// 	})
-	// }
 
 }

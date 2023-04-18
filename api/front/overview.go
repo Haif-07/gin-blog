@@ -3,6 +3,9 @@ package front
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
+	"gin-blog/models/response"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,88 +28,46 @@ type OverviewVo struct {
 
 func (*Overview) Overview(c *gin.Context) {
 	var o OverviewVo
-	o.ResourceCount.Article = dao.GetArticleCount()
-	o.ResourceCount.Category = dao.GetCategoryCount()
-	o.ResourceCount.Comment = dao.GetCommentCount()
-	o.ResourceCount.Tag = dao.GetTagCount()
-	o.Tags = dao.GetTagsWithArticleCount()
-	o.Categories = dao.GetCategoryWithArticleCount()
-	o.Pages = dao.GetPage()
-	o.Configs = dao.Getconfigs()
-	// o.ResourceCount.Article = 10
-	// o.ResourceCount.Category = 3
-	// o.ResourceCount.Comment = 4
-	// o.ResourceCount.Tag = 5
-	// tag1 := Tag{
-	// 	Id:           7,
-	// 	Name:         "软件过程管理",
-	// 	ArticleCount: 4,
-	// 	CreatedAt:    "2020-12-18 14:55",
-	// 	UpdatedAt:    "2020-12-18 14:55",
-	// }
-	// tag2 := Tag{
-	// 	Id:           8,
-	// 	Name:         "读书笔记",
-	// 	ArticleCount: 4,
-	// 	CreatedAt:    "2020-12-18 14:55",
-	// 	UpdatedAt:    "2020-12-18 14:55",
-	// }
-	// categories1 := Categories{
-	// 	Id:           6,
-	// 	Name:         "读书笔记",
-	// 	ArticleCount: 4,
-	// 	CreatedAt:    "2020-12-18 14:55",
-	// 	UpdatedAt:    "2020-12-18 14:55",
-	// }
-	// categories2 := Categories{
-	// 	Id:           7,
-	// 	Name:         "嘻嘻哈啊哈",
-	// 	ArticleCount: 4,
-	// 	CreatedAt:    "2020-12-18 14:55",
-	// 	UpdatedAt:    "2020-12-18 14:55",
-	// }
-	// pages1 := Pages{
-	// 	Id:        3,
-	// 	Name:      "关于",
-	// 	Icon:      "user",
-	// 	Link:      "/about",
-	// 	Status:    1,
-	// 	CreatedAt: "2020-12-18 14:55",
-	// 	UpdatedAt: "2020-12-18 14:55",
-	// }
-	// pages2 := Pages{
-	// 	Id:        43,
-	// 	Name:      "nihao",
-	// 	Icon:      "user",
-	// 	Link:      "/about",
-	// 	Status:    2,
-	// 	CreatedAt: "2020-12-18 14:55",
-	// 	UpdatedAt: "2020-12-18 14:55",
-	// }
+	articlecount, err := dao.GetArticleCount()
+	if err != nil {
+		zap.L().Error("获取文章总数出错", zap.Error(err))
+	}
+	categoryCount, err := dao.GetCategoryCount()
+	if err != nil {
+		zap.L().Error("获取分类总数出错", zap.Error(err))
+	}
+	commentcount, err := dao.GetCommentCount()
+	if err != nil {
+		zap.L().Error("获取评论总数出错", zap.Error(err))
+	}
+	tagcount, err := dao.GetTagCount()
+	if err != nil {
+		zap.L().Error("获取标签总数出错", zap.Error(err))
+	}
+	taglist, err := dao.GetTagsWithArticleCount()
+	if err != nil {
+		zap.L().Error("获取标签出错了", zap.Error(err))
+	}
+	categorylist, err := dao.GetCategoryWithArticleCount()
+	if err != nil {
+		zap.L().Error("获取分类出错了", zap.Error(err))
+	}
+	page, err := dao.GetPage()
+	if err != nil {
+		zap.L().Error("获取页面信息出错了", zap.Error(err))
+	}
+	configs, err := dao.Getconfigs()
+	if err != nil {
+		zap.L().Error("获取博客配置出错了", zap.Error(err))
+	}
+	o.ResourceCount.Article = int(articlecount)
+	o.ResourceCount.Category = int(categoryCount)
+	o.ResourceCount.Comment = int(commentcount)
+	o.ResourceCount.Tag = int(tagcount)
+	o.Tags = taglist
+	o.Categories = categorylist
+	o.Pages = page
+	o.Configs = configs
+	response.OkWithDetailed(o, "查询成功", c)
 
-	// config1 := Configs{
-	// 	Id:    1,
-	// 	Name:  "indexTitle",
-	// 	Value: "跑起来就有风",
-	// }
-	// config2 := Configs{
-	// 	Id:    2,
-	// 	Name:  "bannerTitle",
-	// 	Value: "跑起来就有风",
-	// }
-	// o.Tag = append(o.Tag, tag1)
-	// o.Tag = append(o.Tag, tag2)
-	// o.Categories = append(o.Categories, categories1)
-	// o.Categories = append(o.Categories, categories2)
-	// o.Pages = append(o.Pages, pages1)
-	// o.Pages = append(o.Pages, pages2)
-
-	// o.Configs = append(o.Configs, config1)
-	// o.Configs = append(o.Configs, config2)
-
-	c.JSON(200, gin.H{
-		"code":    200000,
-		"message": "success",
-		"data":    o,
-	})
 }

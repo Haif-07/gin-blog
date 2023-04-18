@@ -5,8 +5,10 @@ import (
 	"gin-blog/models"
 )
 
-func Getconfigs() []models.Config {
+func Getconfigs() ([]models.Config, error) {
 	var con []models.Config
-	database.DB.Find(&con)
-	return con
+	if err := database.DB.Find(&con).Error; err != nil {
+		return con, err
+	}
+	return con, nil
 }

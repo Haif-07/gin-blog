@@ -2,26 +2,24 @@ package main
 
 import (
 	"fmt"
-	databas "gin-blog/database"
+	"gin-blog/database"
+	"gin-blog/log"
 	"gin-blog/routes"
+	"gin-blog/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-
-	err := databas.InitMysql()
+	fmt.Println(utils.Filename)
+	gin.SetMode(utils.AppMode)
+	err := log.InitLogger()
 	if err != nil {
-		fmt.Println("数据库连接失败")
-	} else {
-		fmt.Println("数据库连接成功")
+		fmt.Printf("init logger failed, err:%v\n", err)
+		return
 	}
+	database.InitMysql()
 	// r := gin.Default()
-	// routes.AboutUser(r)
-	// routes.Auth(r)
-	// routes.Overview(r)
-	// routes.Article(r)
-	// routes.Comment(r)
-	e := routes.InitRouters()
-	e.Run(":8848")
-	defer databas.Close()
+	routes.InitRouters()
 
 }

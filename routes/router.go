@@ -2,12 +2,16 @@ package routes
 
 import (
 	"gin-blog/middleware"
+	"gin-blog/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouters() *gin.Engine {
-	r := gin.Default()
+func InitRouters() {
+	r := gin.New()
+	r.Use(middleware.GinLogger())
+	r.Use(middleware.GinRecovery(true))
+	r.Use(middleware.Cors())
 	front := r.Group("api")
 	{
 		front.POST("login", useraboutApi.FrontLogin)
@@ -56,53 +60,5 @@ func InitRouters() *gin.Engine {
 
 	}
 
-	return r
+	_ = r.Run(utils.HttpPort)
 }
-
-// func AboutUser(e *gin.Engine) {
-// 	User := e.Group("/api")
-
-// 	{
-// 		User.POST("login", useraboutApi.FrontLogin)
-// 		User.GET("currentUser", useraboutApi.GetUserInfo)
-// 		User.GET("auth/userInfo", middleware.AuthMiddleware(), useraboutApi.UserInfo)
-// 	}
-// }
-
-// func Auth(e *gin.Engine) {
-// 	Oauth := e.Group("/api/oauth")
-
-// 	{
-// 		Oauth.GET("login/github", oauthApi.Login)
-// 		Oauth.GET("callback/github", oauthApi.GithubLogincallback)
-// 	}
-// }
-
-// func Overview(e *gin.Engine) {
-// 	Overview := e.Group("/api")
-
-// 	{
-// 		Overview.GET("overview", overviewApi.Overview)
-// 	}
-// }
-
-// func Article(e *gin.Engine) {
-// 	FrontArticle := e.Group("/api")
-
-// 	{
-// 		FrontArticle.GET("articles", articleApi.ArticlePageNum)
-// 		FrontArticle.GET("articles/all", articleApi.GetArticlesAll)
-// 		FrontArticle.GET("articles/:id", articleApi.GetArticleDetailsById)
-// 		FrontArticle.GET("articles/:id/comments", articleApi.GetArticleComments)
-
-// 	}
-// }
-
-// func Comment(e *gin.Engine) {
-// 	Comment := e.Group("/api")
-
-// 	{
-// 		Comment.POST("comments", commentApi.Save)
-// 		Comment.DELETE("comments/:id", commentApi.DelectById)
-// 	}
-// }

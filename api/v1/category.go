@@ -3,8 +3,10 @@ package v1
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
-	"net/http"
+	"gin-blog/models/response"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,50 +14,38 @@ import (
 type Category struct{}
 
 func (*Category) GetCategoryALL(c *gin.Context) {
-	list := dao.GetCategoryWithArticleCount()
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": list,
-	})
+	list, err := dao.GetCategoryWithArticleCount()
+	if err != nil {
+		zap.L().Error("查询出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
+	}
+	response.OkWithDetailed(list, "查询成功", c)
+
 }
 
 func (*Category) AddCategory(c *gin.Context) {
 	var category models.Category
 	err := c.ShouldBind(&category)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
-	i := dao.AddCategory(&category)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.AddCategory(&category)
+	if err != nil {
+		zap.L().Error("创建出错了", zap.Error(err))
+		response.FailWithMessage("创建出错了", c)
 	}
+	response.OkWithMessage("创建成功", c)
 
 }
 func (*Category) DeleteCategory(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	i := dao.DeleteCategoryById(id)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.DeleteCategoryById(id)
+	if err != nil {
+		zap.L().Error("删除分类出错了", zap.Error(err))
+		response.FailWithMessage("删除出错了", c)
 	}
+	response.OkWithMessage("删除成功", c)
 }

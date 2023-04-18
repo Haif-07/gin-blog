@@ -3,9 +3,11 @@ package v1
 import (
 	"gin-blog/dao"
 	"gin-blog/models"
+	"gin-blog/models/response"
 	"gin-blog/utils"
-	"net/http"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,28 +25,21 @@ func (*User) AuthLogin(c *gin.Context) {
 	var params UserParams
 	err := c.ShouldBindJSON(&params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
 	u, err := dao.GetUser(params.Username, params.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("查询用户出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
 	}
 	token, err := utils.GetToken(u)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500000,
-			"message": "fail",
-		})
+		zap.L().Error("创建token出错", zap.Error(err))
+		response.FailWithMessage("fail", c)
 	}
 	c.Header("AUTHORIZATION", "Bearer "+token)
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": u,
-	})
+	response.OkWithDetailed(u, "success", c)
+
 }
 
 // 后台查看所有用户
@@ -54,21 +49,22 @@ func (*User) GetUserList(c *gin.Context) {
 	ps := c.Query("pageSize")
 	pageNum, err := strconv.Atoi(pn)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 	pageSize, err := strconv.Atoi(ps)
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	userlist, total := dao.GetUserList(pageNum, pageSize)
+	userlist, total, err := dao.GetUserList(pageNum, pageSize)
+	if err != nil {
+		zap.L().Error("查询所有用户出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
+	}
 	pageinfo.Total = total
 	pageinfo.PageNum = pageNum
 	pageinfo.PageSize = pageSize
 	pageinfo.Data = userlist
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": pageinfo,
-	})
+	response.OkWithDetailed(pageinfo, "查询成功", c)
 
 }
 
@@ -76,17 +72,13 @@ func (*User) GetUserList(c *gin.Context) {
 func (*User) GetUserById(c *gin.Context) {
 	i, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
 	userinfo, err := dao.GetUserById(i)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("查询用户信息出错了", zap.Error(err))
+		response.FailWithMessage("查询出错了", c)
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"msg":  "success",
-		"data": userinfo,
-	})
+	response.OkWithDetailed(userinfo, "查询成功", c)
 
 }

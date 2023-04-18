@@ -1,4 +1,4 @@
-package models
+package mytime
 
 import (
 	"database/sql/driver"

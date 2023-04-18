@@ -5,9 +5,11 @@ import (
 	"gin-blog/models"
 )
 
-func GetPage() []models.Page {
-	//困难，"only_full_group_by"sql模式对GROUP BY的影响及处理
+func GetPage() ([]models.Page, error) {
+
 	var p []models.Page
-	database.DB.Find(&p)
-	return p
+	if err := database.DB.Find(&p).Error; err != nil {
+		return p, err
+	}
+	return p, nil
 }

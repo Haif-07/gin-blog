@@ -4,10 +4,14 @@ import (
 	"gin-blog/config"
 	"gin-blog/dao"
 	"gin-blog/models"
+	"gin-blog/models/response"
 	"gin-blog/utils"
+	"gin-blog/utils/mytime"
 	"net/http"
 	"strconv"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,30 +30,19 @@ func (*Oauth) Login(c *gin.Context) {
 		"message":      "success",
 		"authorizeUrl": url,
 	})
-	// c.Redirect(302, url)
+
 }
 func (*Oauth) GithubLogincallback(c *gin.Context) {
-
-	// code := c.Query("code")
-	// token, err := config.Exchange(oauth2.NoContext, code)
-	// if err != nil {
-	// 	c.AbortWithError(http.StatusBadRequest, err)
-	// 	return
-	// }
-
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"access_token": token.AccessToken,
-	// })
 	code := c.Query("code")
 	authinfo := config.Setup()
 	tok, err := config.GetToken(c, authinfo, code)
 	if err != nil {
-		panic(err)
+		zap.L().Error("获取token出错", zap.Error(err))
 	}
 	client := authinfo.Client(c, tok)
 	u, err := config.GetUsers(client)
 	if err != nil {
-		panic(err)
+		zap.L().Error("获取第三方信息出错", zap.Error(err))
 	}
 
 	var userinfo models.User
@@ -59,31 +52,20 @@ func (*Oauth) GithubLogincallback(c *gin.Context) {
 	userinfo.AvatarUrl = u.AvatarURL
 	userinfo.Email = u.Email
 	userinfo.Role = "1"
-	userinfo.LastLogin = models.MyTime(time.Now())
+	userinfo.LastLogin = mytime.MyTime(time.Now())
 
 	err = dao.CreatedOrUpdate(&userinfo)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500000,
-			"message": "fail",
-		})
+		zap.L().Error("创建或更新用户出错", zap.Error(err))
+		response.FailWithMessage("fail", c)
 	}
-	// database.DB.Where("social_source=? and social_user_id=?", userinfo.SocialSource, userinfo.SocialUserId).First(&userinfo)
-	// if userinfo ==  {
 	token, err := utils.GetToken(userinfo)
-	// }
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500000,
-			"message": "fail",
-		})
+		zap.L().Error("创建token出错", zap.Error(err))
+		response.FailWithMessage("fail", c)
 	}
 	c.Header("AUTHORIZATION", "Bearer "+token)
 
-	// fmt.Println(token)
-	c.JSON(http.StatusOK, gin.H{
-		"code":    200000,
-		"message": "success",
-	})
+	response.OkWithMessage("success", c)
 
 }

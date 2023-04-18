@@ -34,17 +34,19 @@ func GetUser(u, p string) (models.User, error) {
 
 //查看所有用户
 
-func GetUserList(ps, pn int) ([]models.User, int64) {
+func GetUserList(ps, pn int) ([]models.User, int64, error) {
 	var total int64
 	list := make([]models.User, 0)
-	database.DB.Debug().
+	err := database.DB.Debug().
 		Table("users").
 		Count(&total).
 		Limit(pn).
 		Offset(pn * (ps - 1)).
-		Find(&list)
-
-	return list, total
+		Find(&list).Error
+	if err != nil {
+		return list, total, err
+	}
+	return list, total, nil
 }
 
 //查看某个用户 根据id
