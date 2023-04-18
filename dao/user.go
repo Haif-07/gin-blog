@@ -37,7 +37,7 @@ func GetUser(u, p string) (models.User, error) {
 func GetUserList(ps, pn int) ([]models.User, int64, error) {
 	var total int64
 	list := make([]models.User, 0)
-	err := database.DB.Debug().
+	err := database.DB.
 		Table("users").
 		Count(&total).
 		Limit(pn).

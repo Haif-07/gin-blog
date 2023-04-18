@@ -1,11 +1,12 @@
 package v1
 
 import (
-	"fmt"
 	"gin-blog/dao"
 	"gin-blog/models"
-	"net/http"
+	"gin-blog/models/response"
 	"strconv"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,43 +16,29 @@ type Article struct{}
 func (*Article) DeleteArticle(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-	i := dao.DeleteArticleById(id)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.DeleteArticleById(id)
+	if err != nil {
+		zap.L().Error("删除用户出错了", zap.Error(err))
+		response.FailWithMessage("删除出错了", c)
 	}
+	response.OkWithMessage("删除成功", c)
 }
 
 func (*Article) AddArtilce(c *gin.Context) {
 	var article models.CreatedOrUpdateArticleDto
 	err := c.ShouldBindJSON(&article)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
 
-	i := dao.CreateArticle(&article)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+	err = dao.CreateArticle(&article)
+	if err != nil {
+		zap.L().Error("创建文章出错了", zap.Error(err))
+		response.FailWithMessage("发出出错了", c)
 	}
+	response.OkWithMessage("发布成功", c)
 
 }
 
@@ -59,27 +46,18 @@ func (*Article) UpdateArtilce(c *gin.Context) {
 	var article models.CreatedOrUpdateArticleDto
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return
+		zap.L().Error("请求参数转换出错", zap.Error(err))
 	}
-
-	err2 := c.ShouldBindJSON(&article)
-	if err2 != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	err = c.ShouldBindJSON(&article)
+	if err != nil {
+		zap.L().Error("请求参数绑定出错", zap.Error(err))
 	}
 	article.Id = id
-	fmt.Printf("article: %v\n", article)
-	i := dao.UpdateArticleById(&article)
-	if i > 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-		})
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "fail",
-		})
+
+	err = dao.UpdateArticleById(&article)
+	if err != nil {
+		zap.L().Error("更新文章数据出错了", zap.Error(err))
+		response.FailWithMessage("编辑出错了", c)
 	}
+	response.OkWithMessage("编辑成功", c)
 }
